@@ -1,0 +1,173 @@
+---
+title: "Smart Crypto Stock Analysis (SCSA) Report - v0.1"
+author: "Rodrigo Almeida dos Santos - rodrigo.almeida@gmail.com"
+date: "13/01/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Apresentação
+
+O objetivo desse trabalho é, através de uma combinação de indicadores de análise técnica e algoritmos de inteligência artificial, selecionar uma ou mais estratégias com maior potencial de lucro nas operações de compra e venda de ativos financeiros.
+
+Dividimos a análise em três seções:
+
+* Na seção 1, iremos avaliar a evolução dos Ativos baseado em indicadores de Análise Técnica. Nessa seção iremos simular 15 estratégias de investimentos para um conjunto de ativos e selecionar automaticamente aqueles ativos/estratégias com maior potencial de retorno de investimento. Nessa seção também definiremos os benchmarks os quais serão submetidos os algoritmos de inteligência artificial.
+
+* Na seção 2 iremos evoluir a aplicação da previsão incluindo algoritmos de Inteligência Artificial em uma ou mais das etapas de seleção de compra e venda de ativos. Confrotaremos os resultados obtidos com os algoritmos de IA e aqueles obtidos com análise técnica.
+
+* Na seção 3 expandiremos a aplicação da Análise dos ativos tradicionais e trabalharemos na previsão das principais criptomoedas que estão disponíveis para operação no mercado.
+
+
+## Seção 1 - Seleção Automática de Estratégias de Investimento
+
+As seguintes estratégias de Investimento serão avaliadas (A partir da estratégia 11 utilizaremos multiplos indicadores):
+
+* Estratégia 1: [Simple Moving Averages](https://www.investopedia.com/terms/s/sma.asp) & [Exponential Moving Averages](https://www.investopedia.com/terms/e/ema.asp) SMA(5 & 21) & EMA(5 & 21) Double Crossover 
+* Estratégia 2: [Bollinger Bands](https://www.investopedia.com/terms/b/bollingerbands.asp) BB(20,2)
+* Estratégia 3: [Parabolic Stop And Reverse](https://www.investopedia.com/articles/technical/02/042202.asp) SAR(0.02,0.2) 
+* Estratégia 4: [Average Directional Movement Index](https://www.investopedia.com/terms/a/adx.asp) ADX(14)
+* Estratégia 5: [Commodity Channel Index](https://www.investopedia.com/terms/c/commoditychannelindex.asp) CCI(20,0.015)
+* Estratégia 6: [Moving Averages Covergence/Divergence](https://www.investopedia.com/terms/m/macd.asp) MACD(12,26,9)
+* Estratégia 7: [Rate Of Change](https://www.investopedia.com/terms/p/pricerateofchange.asp) ROC(21)
+* Estratégia 8: [Relative Strength Index](https://www.investopedia.com/terms/r/rsi.asp) RSI(14)
+* Estratégia 9: [Stochastic Momentum Index](https://www.investopedia.com/ask/answers/021315/what-difference-between-stochastic-oscillator-stochastic-momentum-index.asp) SMI(13,2,25,9)
+* Estratégia 10: [Williams %R(14)](https://www.investopedia.com/terms/w/williamsr.asp)
+* Estratégia 11: Commodity Channel Index CCI(20,0.015) and Simple Moving Average SMA(5)
+* Estratégia 12: Rate Of Change ROC(21) and Simple Moving Average SMA(5)
+* Estratégia 13: Relative Strength Index RSI(14) and Simple Moving Average SMA(5)
+* Estratégia 14: Stochastic Momentum Index SMI(13,2,25,9) and Simple Moving Average SMA(5)
+* Estratégia 15: Williams %R(14) and Simple Moving Average SMA(5)
+
+
+Os ativos selecionados estão listados no [site do yahoo](https://finance.yahoo.com/quote/%5EBVSP/components/). Selecionamos aleatoriamente 10 das ações da [carteira BOVESPA](http://www.bmfbovespa.com.br/pt_br/produtos/indices/indices-amplos/indice-ibovespa-ibovespa-composicao-da-carteira.htm) que estão entre os top 30 em volume de operações em 12/01/2018:
+
+* Banco Bradesco S.A. (BBDC4)
+* Raia Drogasil S.A. (RADL3)
+* Lojas Americanas S.A. (LAME4)
+* Braskem S.A. (BRKM5)
+* Oi S.A. (OIBR4)
+* Petroleo Brasileiro S.A (PETR4)
+* Tim Participações S.A. (TIMP3)
+* Banco do Brasil S.A. (BBAS3)
+* Usinas Siderúrgicas de Minas Gerais S.A. (USIM5)
+* Vale S.A. (VALE5)
+
+### Análise da Estratégia Vencedora por Ação
+A seguir, apresentamos a análise do comportamento das 10 ações no período de 12/01/2017 a 11/01/2018. Consideramos taxa de Corretagem de 1% para cada operação de compra ou venda. Para efeito de adoção da estratégia de investimento, comparamos o resultado de cada estratégia com o retorno diário de cada ação. Uma estratégia será selecionada somente se *o retorno da estratégia for melhor que o somatórios dos valores dos ganhos diários de cada ação*. Caso nenhuma estratégia supere o retorno diário, este será escolhido como valor de Benchmark.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#Integrando com formattable
+suppressMessages(library(knitr))
+suppressMessages(library(formattable))
+suppressMessages(library(dplyr))
+suppressMessages(library(kableExtra))
+
+saida <- data.frame()
+BBDC4 <- c("Nenhuma",0.2203)
+RADL3 <- c("Nenhuma",0.3593)
+LAME4 <- c("SAR(0.02,0.2)", 0.2778)
+BRKM5 <- c("Nenhuma",0.2321)
+OIBR4 <- c("CCI(20,0.015) & SMA(5)",0.7164)
+PETR4 <- c("ADX(14)",0.1337)
+TIMP3 <- c("Nenhuma",0.5310)
+BBAS3 <- c("ADX(14)",0.3666)
+USIM5 <- c("Nenhuma",1.2505)
+VALE5 <- c("BB(20,2)",0.4006)
+
+saida <- rbind(BBDC4,RADL3,LAME4,BRKM5,OIBR4,PETR4, TIMP3, BBAS3, USIM5, VALE5)
+colnames(saida) <- c("Estrategia","Benchmark")
+
+saida <- as.data.frame(saida)
+
+saida %>%
+  mutate(
+    Ativo = row.names(.),
+    Benchmark = color_bar("lightgreen")(Benchmark)
+  ) %>%
+  select(Ativo, everything()) %>%
+  kable("html", escape = F) %>%
+  kable_styling("hover", full_width = F) %>%
+  column_spec(2, width = "9cm") 
+```
+
+
+### Sumário de Performance das Ações com Rendimento maior que o Retorno Diário
+
+#### LAME4
+
+Melhores Estratégias: 
+
+      estrategiasVencedoras     valoresRetornoVencedores
+ [1,] "SMA(5,21)"               "-0.0623"               
+ [2,] "EMA(5,21)"               "0.0046"                
+ [3,] "SAR(0.02,0.2)"           "0.2778"                
+ [4,] "ADX(14)"                 "-0.0579"               
+ [5,] "MACD(12,26,9)S"          "0.1023"                
+ [6,] "RSI(14)"                 "0.1918"                
+ [7,] "SMI(13,2,25,9)"          "0.186"                 
+ [8,] "CCI(20,0.015) & SMA(5)"  "-0.043"                
+ [9,] "ROC(21) & SMA(5)"        "0.0803"                
+[10,] "RSI(14) & SMA(5)"        "0.0382"                
+[11,] "SMI(13,2,25,9) & SMA(5)" "0.1608"                
+[12,] "%R(14) & SMA(5)"         "-0.0304"  
+
+![Sumário de Performance LAME4](/Users/rodrigo/Documents/GitHub/rprevisaoacoes/img/LAME4.png)
+
+#### OIBR4
+
+Melhores Estratégias: 
+
+     estrategiasVencedoras    valoresRetornoVencedores
+[1,] "BB(20,2)"               "0.565"                 
+[2,] "CCI(20,0.015)"          "0.3753"                
+[3,] "CCI(20,0.015) & SMA(5)" "0.7164"
+
+![Sumário de Performance OIBR4](/Users/rodrigo/Documents/GitHub/rprevisaoacoes/img/OIBR4.png)
+
+#### PETR4
+
+Melhor Estratégia: 
+
+     estrategiasVencedoras valoresRetornoVencedores
+[1,] "ADX(14)"             "0.1337"
+
+![Sumário de Performance PETR4](/Users/rodrigo/Documents/GitHub/rprevisaoacoes/img/PETR4.png)
+
+#### BBAS3
+
+Melhores Estratégias:
+
+     estrategiasVencedoras     valoresRetornoVencedores
+[1,] "SMA(5,21)"               "0.1521"                
+[2,] "ADX(14)"                 "0.3666"                
+[3,] "ROC(21)"                 "0.2305"                
+[4,] "RSI(14)"                 "0.2623"                
+[5,] "ROC(21) & SMA(5)"        "0.1897"                
+[6,] "RSI(14) & SMA(5)"        "0.252"                 
+[7,] "SMI(13,2,25,9) & SMA(5)" "0.242"                 
+[8,] "%R(14) & SMA(5)"         "0.2806" 
+
+![Sumário de Performance BBAS3](/Users/rodrigo/Documents/GitHub/rprevisaoacoes/img/BBAS3.png)
+
+#### VALE5
+
+Melhores Estratégias: 
+
+     estrategiasVencedoras valoresRetornoVencedores
+[1,] "SMA(5,21)"           "0.2706"                
+[2,] "BB(20,2)"            "0.4006"                
+[3,] "CCI(20,0.015)"       "0.2529"  
+
+![Sumário de Performance VALE5](/Users/rodrigo/Documents/GitHub/rprevisaoacoes/img/VALE5.png)
+
+## Seção 2 - Seleção de Algoritmos de Inteligência Artificial para Incrementar Estratégias de Investimentos
+
+## Seção 3 - Aplicação da Estratégia no Contexto das Criptomoedas
+
+
+
